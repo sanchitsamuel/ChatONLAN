@@ -8,7 +8,7 @@ import sys
 
 
 class ChatONLAN(QMainWindow, Ui_MainWindow):
-    PORT = 800
+    PORT = 8000
     MEMBERS = {}
     ONLINE = QTreeWidgetItem()
     FAV = QTreeWidgetItem()
@@ -23,6 +23,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.treeMember.insertTopLevelItem(1, self.FAV)
 
         # signal and slots
+        self.treeMember.currentItemChanged.connect(self.tree_selection)
+
         self.action_About.triggered.connect(self.about)
 
     def closeEvent(self, event):
@@ -39,6 +41,9 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         QMessageBox.information(self, 'About',
                                 "This is <b>ChatONLAN</b> ver 1.", QMessageBox.Ok,
                                 QMessageBox.Ok)
+
+    def tree_selection(self, current, previous):
+        self.statusbar.showMessage(current.text(1))
 
     def broadcast(self):
         msg = "name=user&host="+gethostname()
@@ -59,6 +64,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         beacon.start()
 
     def member_lookup(self):
+        self.MEMBERS = {}
         while 1:
             s = socket(AF_INET, SOCK_DGRAM)
             s.bind(('<broadcast>', 8000))
@@ -86,40 +92,32 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def setup_member_table(self):
         row = 0
         child_count = self.ONLINE.childCount()
-        print(child_count)
+        # child_count += 1
+        print('Child count: ' + str(child_count))
         print(self.MEMBERS)
-        print(len(self.MEMBERS))
+        print('Length of member dict: ' + str(len(self.MEMBERS)))
         exist = False
-        if len(self.MEMBERS) == self.ONLINE.childCount():
-            pass
-        else:
-            for host, ip in self.MEMBERS.items():
-                for i in range(0, child_count):
-                    print('checking at: ' + str(i) + ': ' + host)
-                    temp_item = self.ONLINE.child(i)
-                    if temp_item.text(0) == host:
-                        print('found: ' + host)
-                        exist = True
-                    i += 1
-                if exist:
-                    pass
-                else:
-                    host_item = QTreeWidgetItem()
-                    host_item.setText(0, host)
-                    host_item.setText(1, ip)
-                    self.ONLINE.addChild(host_item)
-                    print('inserting: ' + host)
-                    row += 1
-
-                '''
-                print(host)
-                print(ip)
+        for host, ip in self.MEMBERS.items():
+            for i in range(child_count):
+                # exist = False
+                print('checking at: ' + str(i) + ': ' + host)
+                temp_item = self.ONLINE.child(i)
+                if temp_item.text(0) == host:
+                    print('found: ' + host)
+                    exist = True
+                i += 1
+            if exist:
+                exist = False
+                pass
+            else:
+                exist = False
                 host_item = QTreeWidgetItem()
                 host_item.setText(0, host)
                 host_item.setText(1, ip)
                 self.ONLINE.addChild(host_item)
+                print('inserting: ' + host)
                 row += 1
-                '''
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
