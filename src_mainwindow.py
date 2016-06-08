@@ -81,7 +81,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             tmp, name = variables[0].split('=')      # feature not yet implemented
             tmp, host = variables[1].split('=')
             host = host[:-1]
-            self.MEMBERS[host] = m[1][0]                # store the found member info into the dict
+            if host != gethostname():
+                self.MEMBERS[host] = m[1][0]                # store the found member info into the dict
             self.setup_member_table()
 
     def start_member_lookup(self):
