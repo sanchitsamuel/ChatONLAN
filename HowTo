@@ -1,0 +1,16 @@
+Project                     : ChatONLAN
+Author                      : Sanchit Samuel <sanchit.samuel@live.com>
+Date                        : 7th June' 16
+GIT                         : ""
+
+How is 'ChatONLAN' gonna work?
+So we need all the members who wanna chat connected on LAN, be a 'router'. Every member broadcasts their information on
+the local network. This information is received by other members on the same network, and hence they know that there is
+someone available on the network to chat.
+
+This chat system is completely peer-to-peer, no server needed.
+
+Broadcast
+Broadcast is done using UDP protocol over another thread, users can disable broadcasting as per their wish.
+The broadcast pushes a message in every 2 to 3 seconds on network.
+If a member receives a broadcast message, it stores the information into its database.
