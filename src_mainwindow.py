@@ -84,20 +84,41 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         lookup.start()
 
     def setup_member_table(self):
-#        self.tabMembers.clear()
         row = 0
-        for host, ip in self.MEMBERS.items():
-            print(host)
-            print(ip)
-            host_item = QTreeWidgetItem()
-            host_item.setText(0, host)
-            host_item.setText(1, ip)
-            # self.treeMember.insertTopLevelItem(row, host_item)
-            self.ONLINE.addChild(host_item)
-            # self.tableMembers.setItem(row, 0, host_item)
-            # self.tableMembers.setItem(row, 1, ip_item)
-            row += 1
+        child_count = self.ONLINE.childCount()
+        print(child_count)
+        print(self.MEMBERS)
+        print(len(self.MEMBERS))
+        exist = False
+        if len(self.MEMBERS) == self.ONLINE.childCount():
+            pass
+        else:
+            for host, ip in self.MEMBERS.items():
+                for i in range(0, child_count):
+                    print('checking: ' + host)
+                    temp_item = self.ONLINE.child(i)
+                    if temp_item.text(0) == host:
+                        print('found: ' + host)
+                        exist = True
+                if exist:
+                    pass
+                else:
+                    host_item = QTreeWidgetItem()
+                    host_item.setText(0, host)
+                    host_item.setText(1, ip)
+                    self.ONLINE.addChild(host_item)
+                    print('inserting: ' + host)
+                    row += 1
 
+                '''
+                print(host)
+                print(ip)
+                host_item = QTreeWidgetItem()
+                host_item.setText(0, host)
+                host_item.setText(1, ip)
+                self.ONLINE.addChild(host_item)
+                row += 1
+                '''
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
