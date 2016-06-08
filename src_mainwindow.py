@@ -95,11 +95,12 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         else:
             for host, ip in self.MEMBERS.items():
                 for i in range(0, child_count):
-                    print('checking: ' + host)
+                    print('checking at: ' + str(i) + ': ' + host)
                     temp_item = self.ONLINE.child(i)
                     if temp_item.text(0) == host:
                         print('found: ' + host)
                         exist = True
+                    i += 1
                 if exist:
                     pass
                 else:
