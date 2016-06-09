@@ -11,9 +11,12 @@ import sys
 class ChatONLAN(QMainWindow, Ui_MainWindow):
     PORT = 8000
     MEMBERS = {}
+    IP2HOST = {}
+    running = True
     ONLINE = QTreeWidgetItem()
     FAV = QTreeWidgetItem()
     settings = QSettings('chatonlan', 'config')
+    open_chat_list = {}
 
     def __init__(self):
         super(ChatONLAN, self).__init__()
@@ -30,6 +33,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
         # signal and slots
         self.treeMember.currentItemChanged.connect(self.tree_selection)
+        self.treeMember.itemDoubleClicked.connect(self.tree_double_clicked)
+        self.tabWidget.tabCloseRequested.connect(self.tab_close)
 
         self.action_About.triggered.connect(self.action_about)
         self.actionUsername.triggered.connect(self.action_change_username)
@@ -61,11 +66,68 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
         if ok:
             # self.le1.setText(str(text))
-            print(text)
             self.settings.setValue('username', text)
 
     def action_quit(self):
         self.close()
+
+    def tab_close(self, index):
+        text = self.tabWidget.tabText(index)
+        if index != 0:
+            self.tabWidget.removeTab(index)
+            text = text.replace('&', '')
+            self.open_chat_list.pop(text)
+
+    def tree_double_clicked(self, item, column):
+        text = item.text(0)
+        if text != 'Online':
+            if text != 'Favorites':
+                if text in self.open_chat_list:
+                    index = self.open_chat_list[text]
+                    self.tabWidget.setCurrentIndex(index)
+                else:
+                    chat_box = QTableWidget()
+                    chat_msg = QLineEdit()
+                    msg_send = QPushButton('Send')
+
+                    chat_widget = QWidget()
+
+                    hBox_layout = QHBoxLayout()
+                    chat_tab_layout = QVBoxLayout()
+                    hBox_layout.addWidget(chat_msg)
+                    hBox_layout.addWidget(msg_send)
+                    chat_tab_layout.addWidget(chat_box)
+                    chat_tab_layout.addLayout(hBox_layout)
+
+                    chat_widget.setLayout(chat_tab_layout)
+
+                    index = self.tabWidget.addTab(chat_widget, text)
+                    self.tabWidget.setCurrentIndex(index)
+                    text = self.tabWidget.tabText(index)
+                    self.open_chat_list[text] = index
+
+    def get_name_from_address(self, address):
+        return list(self.MEMBERS.keys())[list(self.MEMBERS.values()).index(address)]
+
+    def receive_message(self):
+        r_msg = socket(AF_INET, SOCK_STREAM)
+        r_msg.bind(('', 9000))
+        r_msg.listen(1)
+        connection, address = r_msg.accept()
+        while self.running:
+            if address:
+                data, address = connection.recvfrom(4096)
+                self.display_message(data, address)
+
+    def display_message(self, data, address):
+        name = self.get_name_from_address(address)
+        if name in self.open_chat_list:
+            tab_number = self.open_chat_list[name]
+        else:
+            pass
+
+    def send_message(self, msg, to):
+        pass
 
     def broadcast(self):
         username = self.settings.value('username', type=str)
@@ -102,12 +164,13 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             '''
 
             variables = (str(m[0])).split('&')
-            tmp, name = variables[0].split('=')  # feature not yet implemented
+            tmp, name = variables[0].split('=')
             tmp, host = variables[1].split('=')
             print(name)
-            # host = host[:-1]
+            host = host[:-1]
             if name != username:
                 self.MEMBERS[name] = m[1][0]  # store the found member info into the dict
+                self.IP2HOST[m[1][0]] = host
             self.setup_member_table()
 
     def start_member_lookup(self):
