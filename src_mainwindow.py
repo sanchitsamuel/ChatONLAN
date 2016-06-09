@@ -1,6 +1,7 @@
 from ui_mainwindow import Ui_MainWindow
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from socket import *
 import time
 import threading
@@ -12,10 +13,15 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     MEMBERS = {}
     ONLINE = QTreeWidgetItem()
     FAV = QTreeWidgetItem()
+    settings = QSettings('chatonlan', 'config')
 
     def __init__(self):
         super(ChatONLAN, self).__init__()
         self.setupUi(self)
+
+        QCoreApplication.setOrganizationName('tSibyonixo')
+        QCoreApplication.setOrganizationDomain('tSibyonixo.com')
+        QCoreApplication.setApplicationName('ChatONLAN')
 
         self.ONLINE.setText(0, 'Online')
         self.FAV.setText(0, 'Favorites')
@@ -25,7 +31,9 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         # signal and slots
         self.treeMember.currentItemChanged.connect(self.tree_selection)
 
-        self.action_About.triggered.connect(self.about)
+        self.action_About.triggered.connect(self.action_about)
+        self.actionUsername.triggered.connect(self.action_change_username)
+        self.actionQuit.triggered.connect(self.action_quit)
 
     def closeEvent(self, event):
         reply = QMessageBox.question(self, 'Message',
@@ -37,7 +45,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         else:
             event.ignore()
 
-    def about(self):
+    def action_about(self):
         QMessageBox.information(self, 'About',
                                 "This is <b>ChatONLAN</b> ver 1.", QMessageBox.Ok,
                                 QMessageBox.Ok)
@@ -45,8 +53,22 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def tree_selection(self, current, previous):
         self.statusbar.showMessage(current.text(1))
 
+    def action_change_username(self, line=None):
+        old = self.settings.value('username', type=str)
+        if not line:
+            line = 'Enter your username (current= ' + old + '):'
+        text, ok = QInputDialog.getText(self, 'Username', line)
+
+        if ok:
+            # self.le1.setText(str(text))
+            print(text)
+            self.settings.setValue('username', text)
+
+    def action_quit(self):
+        self.close()
+
     def broadcast(self):
-        msg = "name=user&host="+gethostname()
+        msg = "name=user&host=" + gethostname()
         broadc = socket(AF_INET, SOCK_DGRAM)
         broadc.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         broadc.settimeout(15)
@@ -78,11 +100,11 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             '''
 
             variables = (str(m[0])).split('&')
-            tmp, name = variables[0].split('=')      # feature not yet implemented
+            tmp, name = variables[0].split('=')  # feature not yet implemented
             tmp, host = variables[1].split('=')
             host = host[:-1]
             if host != gethostname():
-                self.MEMBERS[host] = m[1][0]                # store the found member info into the dict
+                self.MEMBERS[host] = m[1][0]  # store the found member info into the dict
             self.setup_member_table()
 
     def start_member_lookup(self):
@@ -125,8 +147,21 @@ if __name__ == '__main__':
     widget = QMainWindow()
     w = ChatONLAN()
 
-    w.start_beacon()
-    w.start_member_lookup()
+    username = w.settings.value('username', type=str)
+    if not username:
+        w.action_change_username('Create new username:')
+        username = w.settings.value('username', type=str)
+        if not username:
+            sys.exit(app.exit(0))
+        else:
+            w.start_beacon()
+            w.start_member_lookup()
 
-    w.show()
-    sys.exit(app.exec_())
+            w.show()
+            sys.exit(app.exec_())
+    else:
+        w.start_beacon()
+        w.start_member_lookup()
+
+        w.show()
+        sys.exit(app.exec_())
