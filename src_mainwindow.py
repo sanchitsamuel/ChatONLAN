@@ -68,7 +68,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.close()
 
     def broadcast(self):
-        msg = "name=user&host=" + gethostname()
+        username = self.settings.value('username', type=str)
+        msg = "name="+username+"&host=" + gethostname()
         broadc = socket(AF_INET, SOCK_DGRAM)
         broadc.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         broadc.settimeout(15)
@@ -87,6 +88,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
     def member_lookup(self):
         self.MEMBERS = {}
+        username = self.settings.value('username', type=str)
         while 1:
             s = socket(AF_INET, SOCK_DGRAM)
             s.bind(('<broadcast>', 8000))
@@ -102,9 +104,10 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             variables = (str(m[0])).split('&')
             tmp, name = variables[0].split('=')  # feature not yet implemented
             tmp, host = variables[1].split('=')
-            host = host[:-1]
-            if host != gethostname():
-                self.MEMBERS[host] = m[1][0]  # store the found member info into the dict
+            print(name)
+            # host = host[:-1]
+            if name != username:
+                self.MEMBERS[name] = m[1][0]  # store the found member info into the dict
             self.setup_member_table()
 
     def start_member_lookup(self):
@@ -120,13 +123,13 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         print(self.MEMBERS)
         print('Length of member dict: ' + str(len(self.MEMBERS)))
         exist = False
-        for host, ip in self.MEMBERS.items():
+        for name, ip in self.MEMBERS.items():
             for i in range(child_count):
                 # exist = False
-                print('checking at: ' + str(i) + ': ' + host)
+                print('checking at: ' + str(i) + ': ' + name)
                 temp_item = self.ONLINE.child(i)
-                if temp_item.text(0) == host:
-                    print('found: ' + host)
+                if temp_item.text(0) == name:
+                    print('found: ' + name)
                     exist = True
                 i += 1
             if exist:
@@ -135,10 +138,10 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             else:
                 exist = False
                 host_item = QTreeWidgetItem()
-                host_item.setText(0, host)
+                host_item.setText(0, name)
                 host_item.setText(1, ip)
                 self.ONLINE.addChild(host_item)
-                print('inserting: ' + host)
+                print('inserting: ' + name)
                 row += 1
 
 
