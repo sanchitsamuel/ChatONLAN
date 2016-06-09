@@ -14,3 +14,8 @@ Broadcast
 Broadcast is done using UDP protocol over another thread, users can disable broadcasting as per their wish.
 The broadcast pushes a message in every 2 to 3 seconds on network.
 If a member receives a broadcast message, it stores the information into its database.
+
+Chat
+So the idea is, that the user can double click on the members available online. When the user double clicks on the a name
+a new tab is opened with the name of the member and the 'opened_chat_list' is updated. This opened_chat_list is used for
+for easy checking and presenting message on the right tab.
