@@ -35,6 +35,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.treeMember.currentItemChanged.connect(self.tree_selection)
         self.treeMember.itemDoubleClicked.connect(self.tree_double_clicked)
         self.tabWidget.tabCloseRequested.connect(self.tab_close)
+        # self.tabWidget.currentChanged.connect(self.tab_changed)
 
         self.action_About.triggered.connect(self.action_about)
         self.actionUsername.triggered.connect(self.action_change_username)
@@ -78,6 +79,10 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             text = text.replace('&', '')
             self.open_chat_list.pop(text)
 
+    def tab_changed(self, index):
+        send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
+        send[0].clicked.connect(self.send_button_pressed)
+
     def tree_double_clicked(self, item, column):
         text = item.text(0)
         if text != 'Online':
@@ -85,10 +90,15 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                 if text in self.open_chat_list:
                     index = self.open_chat_list[text]
                     self.tabWidget.setCurrentIndex(index)
+                    self.tab_changed(index)
                 else:
-                    chat_box = QTableWidget()
+                    chat_box = QTextEdit()
+                    chat_box.setObjectName('chat_box')
+                    chat_box.setReadOnly(True)
                     chat_msg = QLineEdit()
+                    chat_msg.setObjectName('chat_msg')
                     msg_send = QPushButton('Send')
+                    msg_send.setObjectName('send')
 
                     chat_widget = QWidget()
 
@@ -100,11 +110,14 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                     chat_tab_layout.addLayout(hBox_layout)
 
                     chat_widget.setLayout(chat_tab_layout)
+                    chat_widget.setTabOrder(chat_box, chat_msg)
+                    chat_widget.setTabOrder(chat_msg, msg_send)
 
                     index = self.tabWidget.addTab(chat_widget, text)
                     self.tabWidget.setCurrentIndex(index)
                     text = self.tabWidget.tabText(index)
                     self.open_chat_list[text] = index
+                    self.tab_changed(index)
 
     def get_name_from_address(self, address):
         return list(self.MEMBERS.keys())[list(self.MEMBERS.values()).index(address)]
@@ -126,8 +139,21 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         else:
             pass
 
-    def send_message(self, msg, to):
-        pass
+    def send_button_pressed(self):
+        find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QLineEdit, "chat_msg")
+        chat_msg = find_widget[0]
+        if chat_msg.isModified():
+            self.send_message(chat_msg.text())
+            chat_msg.clear()
+        else:
+            self.statusbar.showMessage('Type a message to send.')
+
+    def send_message(self, msg, to=None):
+        username = self.settings.value('username', type=str)
+        find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QTextEdit, "chat_box")
+        chat_box = find_widget[0]
+        to_display = '<b>' + username + '</b>: ' + msg
+        chat_box.append(to_display)
 
     def broadcast(self):
         username = self.settings.value('username', type=str)
@@ -166,8 +192,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             variables = (str(m[0])).split('&')
             tmp, name = variables[0].split('=')
             tmp, host = variables[1].split('=')
-            print(name)
             host = host[:-1]
+            username = self.settings.value('username', type=str)
             if name != username:
                 self.MEMBERS[name] = m[1][0]  # store the found member info into the dict
                 self.IP2HOST[m[1][0]] = host
