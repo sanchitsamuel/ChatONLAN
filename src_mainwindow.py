@@ -140,11 +140,13 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                 # self.create_socket(name)
 
     def create_socket(self, name):
+        run = True
         s_msg = socket(AF_INET, SOCK_STREAM)
-        while True:
+        while run:
             try:
                 s_msg.connect((self.MEMBERS[name], 9000))
                 self.open_socket[name] = s_msg
+                run = False
 
             except:
                 reply = QMessageBox.information(self, 'Socket Error',
@@ -188,12 +190,9 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def display_message(self, data, address):
         # maybe not be used later
         name = self.get_name_from_address(address)
-        if name in self.open_chat_list:
-            index = self.create_tab(name)
-            chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
-            chat_box[0].append(data)
-        else:
-            pass
+        index = self.create_tab(name)
+        chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
+        chat_box[0].append(data)
 
     def checkbox_state_changed(self, state):
         send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton, "send")
@@ -222,7 +221,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         chat_box = find_widget[0]
         to_display = '<font color="blue"><b>' + username + '</b>: ' + msg + '</font>'
         chat_box.append(to_display)
-        sock.send(msg)
+        sock.send(bytes(msg, 'utf-8'))
 
     def broadcast(self):
         username = self.settings.value('username', type=str)
