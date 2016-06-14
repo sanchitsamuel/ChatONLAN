@@ -181,7 +181,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         while self.running:
             connection, address = r_msg.accept()
             if address:
-                name = self.get_name_from_address(address)
+                name = self.get_name_from_address(address[0])
                 if name:
                     self.open_socket[name] = connection
                     data, address = connection.recvfrom(4096)
