@@ -43,6 +43,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.actionQuit.triggered.connect(self.action_quit)
 
     def closeEvent(self, event):
+        for name, sock in self.open_socket.items():
+            sock.close()
         reply = QMessageBox.question(self, 'Message',
                                      "Are you sure to quit ?", QMessageBox.Yes |
                                      QMessageBox.No, QMessageBox.No)
@@ -131,16 +133,36 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                 self.tabWidget.setCurrentIndex(index)
                 self.open_chat_list[name] = index
                 self.tab_changed(index)
-                # self.create_socket(name)
+                self.create_socket(name)
             if get_tab_number:
                 return index
 
-            # self.create_socket(name)
+                # self.create_socket(name)
 
     def create_socket(self, name):
         s_msg = socket(AF_INET, SOCK_STREAM)
-        s_msg.connect((self.MEMBERS[name], 9000))
-        self.open_socket[name] = s_msg
+        while True:
+            try:
+                s_msg.connect((self.MEMBERS[name], 9000))
+                self.open_socket[name] = s_msg
+
+            except:
+                reply = QMessageBox.information(self, 'Socket Error',
+                                                "Would you like to retry?", QMessageBox.Yes |
+                                                QMessageBox.No, QMessageBox.No)
+                if reply == QMessageBox.Yes:
+                    continue
+                else:
+                    find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QTextEdit,
+                                                                                                    "chat_box")
+                    chat_box = find_widget[0]
+                    to_display = '<font color="red">' + \
+                                 'Unable to connect to the user, please close the tab and retry' + '</font>'
+                    chat_box.append(to_display)
+                    send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton,
+                                                                                             "send")
+                    # send.setDisabled(True)
+                    break
 
     def get_name_from_address(self, address):
         return list(self.MEMBERS.keys())[list(self.MEMBERS.values()).index(address)]
@@ -192,18 +214,19 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             self.statusbar.showMessage('Type a message to send.')
 
     def send_message(self, msg, to):
-        # sock = self.open_socket[to]
+        to = to.replace('&', '')
+        sock = self.open_socket[to]
         username = self.settings.value('username', type=str)
         to = to.replace('&', '')
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QTextEdit, "chat_box")
         chat_box = find_widget[0]
         to_display = '<font color="blue"><b>' + username + '</b>: ' + msg + '</font>'
         chat_box.append(to_display)
-        # sock.send(bytes(msg))
+        sock.send(msg)
 
     def broadcast(self):
         username = self.settings.value('username', type=str)
-        msg = "name="+username+"&host=" + gethostname()
+        msg = "name=" + username + "&host=" + gethostname()
         broadc = socket(AF_INET, SOCK_DGRAM)
         broadc.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         broadc.settimeout(15)
