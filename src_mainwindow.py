@@ -243,7 +243,6 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         beacon.start()
 
     def member_lookup(self):
-        self.MEMBERS = {}
         username = self.settings.value('username', type=str)
         while 1:
             s = socket(AF_INET, SOCK_DGRAM)
