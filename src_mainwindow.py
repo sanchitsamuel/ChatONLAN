@@ -6,6 +6,7 @@ from socket import *
 import time
 import threading
 import sys
+from src_beacon import Beacon
 
 
 class ChatONLAN(QMainWindow, Ui_MainWindow):
@@ -18,6 +19,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     settings = QSettings('chatonlan', 'config')
     open_chat_list = {}
     open_socket = {}
+    beacon = Beacon()
 
     def __init__(self):
         super(ChatONLAN, self).__init__()
@@ -26,6 +28,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         QCoreApplication.setOrganizationName('tSibyonixo')
         QCoreApplication.setOrganizationDomain('tSibyonixo.com')
         QCoreApplication.setApplicationName('ChatONLAN')
+
+        self.beacon.start()
 
         self.ONLINE.setText(0, 'Online')
         self.FAV.setText(0, 'Favorites')
@@ -97,7 +101,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
     def create_tab(self, name, switch=False, get_tab_number=False):
         if name in self.open_chat_list:
-            index = self.open_chat_list[text]
+            index = self.open_chat_list[name]
             if switch:
                 self.tabWidget.setCurrentIndex(index)
                 self.tab_changed(index)
@@ -129,11 +133,11 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             chat_widget.setTabOrder(chat_msg, msg_send)
 
             index = self.tabWidget.addTab(chat_widget, name)
+            self.open_chat_list[name] = index
             if switch:
                 self.tabWidget.setCurrentIndex(index)
-                self.open_chat_list[name] = index
                 self.tab_changed(index)
-                self.create_socket(name)
+                # self.create_socket(name)
             if get_tab_number:
                 return index
 
@@ -171,26 +175,29 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
     def start_receive(self):
         recv = threading.Thread(target=self.receive_message)
-        recv.setDaemon(True)
+        # recv.setDaemon(True)
         recv.start()
 
     def receive_message(self):
         r_msg = socket(AF_INET, SOCK_STREAM)
+        r_msg.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         r_msg.bind(('', 9000))
         r_msg.listen(20)
-        while self.running:
+        while True:
             connection, address = r_msg.accept()
             if address:
-                self.open_socket[name] = connection
-                data, address = connection.recvfrom(4096)
-                self.display_message(data, address)
+                name = self.get_name_from_address(address[0])
+                print(name)
+                if name:
+                    self.open_socket[name] = connection
+                    data, address = connection.recvfrom(4096)
+                    self.display_message(data, name)
 
-    def display_message(self, data, address):
+    def display_message(self, data, name):
         # maybe not be used later
-        name = self.get_name_from_address(address)
-        index = self.create_tab(name)
+        index = self.create_tab(name, False, True)
         chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
-        chat_box[0].append(data)
+        chat_box[0].append(str(data))
 
     def checkbox_state_changed(self, state):
         send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton, "send")
@@ -213,37 +220,17 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def send_message(self, msg, to):
         to = to.replace('&', '')
         sock = self.open_socket[to]
-        username = self.settings.value('username', type=str)
-        to = to.replace('&', '')
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QTextEdit, "chat_box")
         chat_box = find_widget[0]
         to_display = '<font color="blue"><b>' + username + '</b>: ' + msg + '</font>'
         chat_box.append(to_display)
         sock.send(bytes(msg, 'utf-8'))
 
-    def broadcast(self):
-        username = self.settings.value('username', type=str)
-        msg = "name=" + username + "&host=" + gethostname()
-        broadc = socket(AF_INET, SOCK_DGRAM)
-        broadc.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        broadc.settimeout(15)
-        broadc.sendto(bytes(msg, "utf-8"), ('<broadcast>', 8000))
-        broadc.close()
-
-    def beacon(self):
-        while 1:
-            self.broadcast()
-            time.sleep(2)
-
-    def start_beacon(self):
-        beacon = threading.Thread(target=self.beacon)
-        beacon.setDaemon(True)
-        beacon.start()
-
     def member_lookup(self):
         username = self.settings.value('username', type=str)
         while 1:
             s = socket(AF_INET, SOCK_DGRAM)
+            s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
             s.bind(('<broadcast>', 8000))
             m = s.recvfrom(4096)
 
@@ -273,17 +260,12 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         row = 0
         child_count = self.ONLINE.childCount()
         # child_count += 1
-        print('Child count: ' + str(child_count))
-        print(self.MEMBERS)
-        print('Length of member dict: ' + str(len(self.MEMBERS)))
         exist = False
         for name, ip in self.MEMBERS.items():
             for i in range(child_count):
                 # exist = False
-                print('checking at: ' + str(i) + ': ' + name)
                 temp_item = self.ONLINE.child(i)
                 if temp_item.text(0) == name:
-                    print('found: ' + name)
                     exist = True
                 i += 1
             if exist:
@@ -295,7 +277,6 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                 host_item.setText(0, name)
                 host_item.setText(1, ip)
                 self.ONLINE.addChild(host_item)
-                print('inserting: ' + name)
                 row += 1
 
 
@@ -311,13 +292,12 @@ if __name__ == '__main__':
         if not username:
             sys.exit(app.exit(0))
         else:
-            w.start_beacon()
             w.start_member_lookup()
+            w.start_receive()
 
             w.show()
             sys.exit(app.exec_())
     else:
-        w.start_beacon()
         w.start_member_lookup()
         w.start_receive()
 
