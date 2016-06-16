@@ -8,6 +8,7 @@ import threading
 import sys
 from src_beacon import Beacon
 from src_member_lookup import MemberLookup
+from src_receive_message import ReceiveMessage
 
 
 class ChatONLAN(QMainWindow, Ui_MainWindow):
@@ -22,6 +23,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     open_socket = {}
     beacon = Beacon()
     member_lookup = MemberLookup()
+    receive_message = ReceiveMessage()
 
     def __init__(self):
         super(ChatONLAN, self).__init__()
@@ -34,6 +36,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.beacon.start()
         self.member_lookup.lookup.connect(self.setup_member_table)
         self.member_lookup.start()
+        self.receive_message.receive.connect(self.display_message)
 
         self.ONLINE.setText(0, 'Online')
         self.FAV.setText(0, 'Favorites')
@@ -55,6 +58,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             sock.close()
         self.beacon.terminate()
         self.member_lookup.terminate()
+        self.receive_message.terminate()
         reply = QMessageBox.question(self, 'Message',
                                      "Are you sure to quit ?", QMessageBox.Yes |
                                      QMessageBox.No, QMessageBox.No)
@@ -143,7 +147,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             if switch:
                 self.tabWidget.setCurrentIndex(index)
                 self.tab_changed(index)
-                # self.create_socket(name)
+                self.create_socket(name)
             if get_tab_number:
                 return index
 
@@ -179,31 +183,13 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def get_name_from_address(self, address):
         return list(self.MEMBERS.keys())[list(self.MEMBERS.values()).index(address)]
 
-    def start_receive(self):
-        recv = threading.Thread(target=self.receive_message)
-        # recv.setDaemon(True)
-        recv.start()
-
-    def receive_message(self):
-        r_msg = socket(AF_INET, SOCK_STREAM)
-        r_msg.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        r_msg.bind(('', 9000))
-        r_msg.listen(20)
-        while True:
-            connection, address = r_msg.accept()
-            if address:
-                name = self.get_name_from_address(address[0])
-                print(name)
-                if name:
-                    self.open_socket[name] = connection
-                    data, address = connection.recvfrom(4096)
-                    self.display_message(data, name)
-
-    def display_message(self, data, name):
+    def display_message(self, address, data, connection):
         # maybe not be used later
+        name = self.get_name_from_address(address)
+        self.open_socket[name] = connection
         index = self.create_tab(name, False, True)
         chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
-        chat_box[0].append(str(data))
+        chat_box[0].append(data)
 
     def checkbox_state_changed(self, state):
         send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton, "send")
@@ -231,40 +217,6 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         to_display = '<font color="blue"><b>' + username + '</b>: ' + msg + '</font>'
         chat_box.append(to_display)
         sock.send(bytes(msg, 'utf-8'))
-
-    '''
-
-    def member_lookup(self):
-        username = self.settings.value('username', type=str)
-        while 1:
-            s = socket(AF_INET, SOCK_DGRAM)
-            s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            s.bind(('<broadcast>', 8000))
-            m = s.recvfrom(4096)
-
-            '
-
-                the beacon sends 'name=xyz&host=abc'
-                so the variables variable needs to be split to get the name and the host
-
-            '
-
-            variables = (str(m[0])).split('&')
-            tmp, name = variables[0].split('=')
-            tmp, host = variables[1].split('=')
-            host = host[:-1]
-            username = self.settings.value('username', type=str)
-            if name != username:
-                self.MEMBERS[name] = m[1][0]  # store the found member info into the dict
-                self.IP2HOST[m[1][0]] = host
-            self.setup_member_table()
-
-    def start_member_lookup(self):
-        lookup = threading.Thread(target=self.member_lookup)
-        lookup.setDaemon(True)
-        lookup.start()
-
-    '''
 
     def setup_member_table(self, members, ip2host):
         self.IP2HOST = ip2host
