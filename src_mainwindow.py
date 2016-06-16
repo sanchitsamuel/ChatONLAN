@@ -7,6 +7,7 @@ import time
 import threading
 import sys
 from src_beacon import Beacon
+from src_member_lookup import MemberLookup
 
 
 class ChatONLAN(QMainWindow, Ui_MainWindow):
@@ -20,6 +21,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     open_chat_list = {}
     open_socket = {}
     beacon = Beacon()
+    member_lookup = MemberLookup()
 
     def __init__(self):
         super(ChatONLAN, self).__init__()
@@ -30,6 +32,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         QCoreApplication.setApplicationName('ChatONLAN')
 
         self.beacon.start()
+        self.member_lookup.lookup.connect(self.setup_member_table)
+        self.member_lookup.start()
 
         self.ONLINE.setText(0, 'Online')
         self.FAV.setText(0, 'Favorites')
@@ -49,6 +53,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def closeEvent(self, event):
         for name, sock in self.open_socket.items():
             sock.close()
+        self.beacon.terminate()
+        self.member_lookup.terminate()
         reply = QMessageBox.question(self, 'Message',
                                      "Are you sure to quit ?", QMessageBox.Yes |
                                      QMessageBox.No, QMessageBox.No)
@@ -226,6 +232,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         chat_box.append(to_display)
         sock.send(bytes(msg, 'utf-8'))
 
+    '''
+
     def member_lookup(self):
         username = self.settings.value('username', type=str)
         while 1:
@@ -234,12 +242,12 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             s.bind(('<broadcast>', 8000))
             m = s.recvfrom(4096)
 
-            '''
+            '
 
                 the beacon sends 'name=xyz&host=abc'
                 so the variables variable needs to be split to get the name and the host
 
-            '''
+            '
 
             variables = (str(m[0])).split('&')
             tmp, name = variables[0].split('=')
@@ -256,12 +264,15 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         lookup.setDaemon(True)
         lookup.start()
 
-    def setup_member_table(self):
+    '''
+
+    def setup_member_table(self, members, ip2host):
+        self.IP2HOST = ip2host
         row = 0
         child_count = self.ONLINE.childCount()
         # child_count += 1
         exist = False
-        for name, ip in self.MEMBERS.items():
+        for name, ip in members.items():
             for i in range(child_count):
                 # exist = False
                 temp_item = self.ONLINE.child(i)
@@ -279,7 +290,6 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                 self.ONLINE.addChild(host_item)
                 row += 1
 
-
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     widget = QMainWindow()
@@ -292,13 +302,11 @@ if __name__ == '__main__':
         if not username:
             sys.exit(app.exit(0))
         else:
-            w.start_member_lookup()
             w.start_receive()
 
             w.show()
             sys.exit(app.exec_())
     else:
-        w.start_member_lookup()
         w.start_receive()
 
         w.show()
