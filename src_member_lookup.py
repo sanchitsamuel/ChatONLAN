@@ -32,12 +32,10 @@ class MemberLookup (QThread):
         tmp, name = variables[0].split('=')
         tmp, host = variables[1].split('=')
         host = host[:-1]
-        print(self.MEMBERS)
         username = self.settings.value('username', type=str)
         if name != username:
             self.MEMBERS[name] = m[1][0]  # store the found member info into the dict
             self.IP2HOST[m[1][0]] = host
-        print(len(self.MEMBERS))
         if len(self.MEMBERS) != 0:
             self.lookup.emit(self.MEMBERS, self.IP2HOST)
 

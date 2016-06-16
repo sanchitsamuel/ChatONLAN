@@ -23,5 +23,4 @@ class Beacon(QThread):
 
     def run(self):
         while True:
-            print('broadcasting')
             self.broadcast()

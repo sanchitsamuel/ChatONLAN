@@ -156,6 +156,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def create_socket(self, name):
         run = True
         s_msg = socket(AF_INET, SOCK_STREAM)
+        print('ip: ' + self.MEMBERS[name])
         while run:
             try:
                 s_msg.connect((self.MEMBERS[name], 9000))
@@ -220,6 +221,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
     def setup_member_table(self, members, ip2host):
         self.IP2HOST = ip2host
+        self.MEMBERS = members
         row = 0
         child_count = self.ONLINE.childCount()
         # child_count += 1
