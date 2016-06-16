@@ -302,12 +302,12 @@ if __name__ == '__main__':
         if not username:
             sys.exit(app.exit(0))
         else:
-            w.start_receive()
+            # w.start_receive()
 
             w.show()
             sys.exit(app.exec_())
     else:
-        w.start_receive()
+        # w.start_receive()
 
         w.show()
         sys.exit(app.exec_())

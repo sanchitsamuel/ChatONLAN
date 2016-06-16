@@ -19,7 +19,9 @@ class Beacon(QThread):
         broadc.settimeout(15)
         broadc.sendto(bytes(msg, "utf-8"), ('<broadcast>', 8000))
         broadc.close()
+        self.sleep(2)
 
     def run(self):
-        self.broadcast()
-        self.wait(2000)
+        while True:
+            print('broadcasting')
+            self.broadcast()
