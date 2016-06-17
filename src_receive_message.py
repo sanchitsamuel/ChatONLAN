@@ -13,7 +13,7 @@ class ReceiveMessage (QThread):
 
     def receive_message(self):
         r_msg = socket(AF_INET, SOCK_STREAM)
-        r_msg.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        # r_msg.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         r_msg.bind(('', 9000))
         r_msg.listen(20)
         while True:

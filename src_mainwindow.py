@@ -156,6 +156,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def create_socket(self, name):
         run = True
         s_msg = socket(AF_INET, SOCK_STREAM)
+        # s_msg.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         print('ip: ' + self.MEMBERS[name])
         while run:
             try:
@@ -163,7 +164,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                 self.open_socket[name] = s_msg
                 run = False
 
-            except:
+            except ConnectionRefusedError:
                 reply = QMessageBox.information(self, 'Socket Error',
                                                 "Would you like to retry?", QMessageBox.Yes |
                                                 QMessageBox.No, QMessageBox.No)
