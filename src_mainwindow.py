@@ -191,7 +191,10 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.open_socket[name] = connection
         index = self.create_tab(name, False, True)
         chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
-        chat_box[0].append(data)
+        data = data[:-1]
+        data = data[2:]
+        to_display = '<font color="red"><b>' + name + '</b>: ' + data + '</font>'
+        chat_box[0].append(to_display)
 
     def checkbox_state_changed(self, state):
         send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton, "send")
