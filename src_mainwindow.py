@@ -182,6 +182,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                     break
 
     def get_name_from_address(self, address):
+        print(self.MEMBERS)
         return list(self.MEMBERS.keys())[list(self.MEMBERS.values()).index(address)]
 
     def display_message(self, address, data, connection):

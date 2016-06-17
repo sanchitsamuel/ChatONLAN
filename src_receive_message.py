@@ -22,7 +22,7 @@ class ReceiveMessage (QThread):
                 # self.open_socket[name] = connection
                 data, address = connection.recvfrom(4096)
                 # self.display_message(data, name)
-                self.receive.emit(address, str(data, 'utf-8'), connection)
+                self.receive.emit(address[0], str(data, 'utf-8'), connection)
 
     def run(self):
         self.receive_message()
