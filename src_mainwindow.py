@@ -150,7 +150,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             if switch:
                 self.tabWidget.setCurrentIndex(index)
                 # self.tab_changed(index)
-                self.create_socket(name)
+                # self.create_socket(name)
             if get_tab_number:
                 return index
 
@@ -212,6 +212,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         # get tab label and from that the IP and send it to the function
         print('sending message')
         address = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        address = address.replace('&', '')
+        self.create_socket(address)
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QLineEdit, "chat_msg")
         chat_msg = find_widget[0]
         if chat_msg.isModified():
@@ -232,8 +234,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         chat_box.append(to_display)
         print('socket.send')
         sock.send(bytes(msg, 'utf-8'))
-        # sock.close()
-        # self.open_socket.pop(to)
+        sock.close()
+        self.open_socket.pop(to)
 
     def setup_member_table(self, members, ip2host):
         self.IP2HOST = ip2host
