@@ -3,8 +3,6 @@ from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from socket import *
-import time
-import threading
 import sys
 from src_beacon import Beacon
 from src_member_lookup import MemberLookup
@@ -37,6 +35,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.member_lookup.lookup.connect(self.setup_member_table)
         self.member_lookup.start()
         self.receive_message.receive.connect(self.display_message)
+        self.receive_message.start()
 
         self.ONLINE.setText(0, 'Online')
         self.FAV.setText(0, 'Favorites')
@@ -156,7 +155,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def create_socket(self, name):
         run = True
         s_msg = socket(AF_INET, SOCK_STREAM)
-        # s_msg.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        s_msg.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         print('ip: ' + self.MEMBERS[name])
         while run:
             try:
