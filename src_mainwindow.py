@@ -204,11 +204,14 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             send[0].setDefault(False)
 
     def send_button_pressed(self):
+        self.statusbar.showMessage('Send button pressed')
         # get tab label and from that the IP and send it to the function
+        print('sending message')
         address = self.tabWidget.tabText(self.tabWidget.currentIndex())
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QLineEdit, "chat_msg")
         chat_msg = find_widget[0]
         if chat_msg.isModified():
+            print('calling send_message')
             self.send_message(chat_msg.text(), address)
             chat_msg.clear()
         else:
@@ -216,11 +219,13 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
     def send_message(self, msg, to):
         to = to.replace('&', '')
+        print(to)
         sock = self.open_socket[to]
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QTextEdit, "chat_box")
         chat_box = find_widget[0]
         to_display = '<font color="blue"><b>' + username + '</b>: ' + msg + '</font>'
         chat_box.append(to_display)
+        print('socket.send')
         sock.send(bytes(msg, 'utf-8'))
 
     def setup_member_table(self, members, ip2host):
