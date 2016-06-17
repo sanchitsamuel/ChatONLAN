@@ -237,30 +237,25 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         sock.close()
         self.open_socket.pop(to)
 
-    def setup_member_table(self, members, ip2host):
+    def setup_member_table(self, members, add, remove, ip2host):
         self.IP2HOST = ip2host
         self.MEMBERS = members
         row = 0
         child_count = self.ONLINE.childCount()
-        # child_count += 1
         exist = False
-        for name, ip in members.items():
+        for name, ip in add.items():
+            host_item = QTreeWidgetItem()
+            host_item.setText(0, name)
+            host_item.setText(1, ip)
+            self.ONLINE.addChild(host_item)
+
+        for name, ip in remove.items():
             for i in range(child_count):
-                # exist = False
                 temp_item = self.ONLINE.child(i)
                 if temp_item.text(0) == name:
-                    exist = True
+                    self.ONLINE.takeChild(i)
                 i += 1
-            if exist:
-                exist = False
-                pass
-            else:
-                exist = False
-                host_item = QTreeWidgetItem()
-                host_item.setText(0, name)
-                host_item.setText(1, ip)
-                self.ONLINE.addChild(host_item)
-                row += 1
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
