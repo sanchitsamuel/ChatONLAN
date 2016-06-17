@@ -13,6 +13,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     PORT = 8000
     MEMBERS = {}
     IP2HOST = {}
+    SIGNAL = []
     running = True
     ONLINE = QTreeWidgetItem()
     FAV = QTreeWidgetItem()
@@ -46,7 +47,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.treeMember.currentItemChanged.connect(self.tree_selection)
         self.treeMember.itemDoubleClicked.connect(self.tree_double_clicked)
         self.tabWidget.tabCloseRequested.connect(self.tab_close)
-        # self.tabWidget.currentChanged.connect(self.tab_changed)
+        self.tabWidget.currentChanged.connect(self.tab_changed)
 
         self.action_About.triggered.connect(self.action_about)
         self.actionUsername.triggered.connect(self.action_change_username)
@@ -91,16 +92,19 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def tab_close(self, index):
         text = self.tabWidget.tabText(index)
         if index != 0:
+            self.SIGNAL.remove(index)
             self.tabWidget.removeTab(index)
             text = text.replace('&', '')
             self.open_chat_list.pop(text)
 
     def tab_changed(self, index):
         if index != 0:
-            send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
-            send[0].clicked.connect(self.send_button_pressed)
-            send_default = self.tabWidget.widget(index).findChildren(QCheckBox, "send_default")
-            send_default[0].stateChanged.connect(self.checkbox_state_changed)
+            if index not in self.SIGNAL:
+                send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
+                send[0].clicked.connect(self.send_button_pressed)
+                send_default = self.tabWidget.widget(index).findChildren(QCheckBox, "send_default")
+                send_default[0].stateChanged.connect(self.checkbox_state_changed)
+                self.SIGNAL.append(index)
 
     def tree_double_clicked(self, item, column):
         text = item.text(0)
@@ -113,7 +117,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             index = self.open_chat_list[name]
             if switch:
                 self.tabWidget.setCurrentIndex(index)
-                self.tab_changed(index)
+                # self.tab_changed(index)
             if get_tab_number:
                 return index
         else:
@@ -145,7 +149,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             self.open_chat_list[name] = index
             if switch:
                 self.tabWidget.setCurrentIndex(index)
-                self.tab_changed(index)
+                # self.tab_changed(index)
                 self.create_socket(name)
             if get_tab_number:
                 return index
@@ -220,6 +224,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def send_message(self, msg, to):
         to = to.replace('&', '')
         print(to)
+        # self.create_socket(to)
         sock = self.open_socket[to]
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QTextEdit, "chat_box")
         chat_box = find_widget[0]
@@ -227,6 +232,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         chat_box.append(to_display)
         print('socket.send')
         sock.send(bytes(msg, 'utf-8'))
+        # sock.close()
+        # self.open_socket.pop(to)
 
     def setup_member_table(self, members, ip2host):
         self.IP2HOST = ip2host
