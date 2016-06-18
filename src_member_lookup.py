@@ -20,7 +20,6 @@ class MemberLookup(QThread):
         self.wait()
 
     def member_lookup(self):
-        print('member_lookup')
         s = socket(AF_INET, SOCK_DGRAM)
         s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         s.bind(('<broadcast>', 8000))
@@ -41,13 +40,10 @@ class MemberLookup(QThread):
         if name != username:
             self.TEMP[name] = m[1][0]  # store the found member info into the dict
             self.IP2HOST[m[1][0]] = host
-        print(self.TEMP)
 
     def compare(self):
         self.ADD = {k: self.TEMP[k] for k in self.TEMP if k not in self.MEMBERS}  # temp - members (new online)
-        print(self.ADD)
         self.REMOVE = {k: self.MEMBERS[k] for k in self.MEMBERS if k not in self.TEMP}  # members - temp (new offline)
-        print(self.REMOVE)
         self.MEMBERS = {k: self.MEMBERS.get(k, k in self.MEMBERS or self.ADD[k]) for k in
                         set(self.MEMBERS) | set(self.ADD)}
         self.MEMBERS = {k: self.MEMBERS[k] for k in self.MEMBERS if k not in self.REMOVE}
@@ -60,6 +56,5 @@ class MemberLookup(QThread):
         while True:
             self.member_lookup()
             if self.x == 4:
-                print('comparing')
                 self.compare()
             self.x += 1

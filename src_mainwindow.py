@@ -14,11 +14,11 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     MEMBERS = {}
     IP2HOST = {}
     SIGNAL = []
-    running = True
     ONLINE = QTreeWidgetItem()
     FAV = QTreeWidgetItem()
     settings = QSettings('chatonlan', 'config')
     open_chat_list = {}
+    notify_offline = {}
     open_socket = {}
     beacon = Beacon()
     member_lookup = MemberLookup()
@@ -44,7 +44,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.treeMember.insertTopLevelItem(1, self.FAV)
 
         # signal and slots
-        self.treeMember.currentItemChanged.connect(self.tree_selection)
+        # self.treeMember.currentItemChanged.connect(self.tree_selection)
         self.treeMember.itemDoubleClicked.connect(self.tree_double_clicked)
         self.tabWidget.tabCloseRequested.connect(self.tab_close)
         self.tabWidget.currentChanged.connect(self.tab_changed)
@@ -52,6 +52,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.action_About.triggered.connect(self.action_about)
         self.actionUsername.triggered.connect(self.action_change_username)
         self.actionQuit.triggered.connect(self.action_quit)
+        self.actionBroadcast.triggered.connect(self.action_broadcast_toggle)
 
     def closeEvent(self, event):
         for name, sock in self.open_socket.items():
@@ -76,6 +77,13 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     def tree_selection(self, current, previous):
         self.statusbar.showMessage(current.text(1))
 
+    def action_broadcast_toggle(self, status):
+        if status:
+            self.beacon.start()
+        else:
+            self.beacon.terminate()
+            self.statusbar.showMessage('Stopping broadcast')
+
     def action_change_username(self, line=None):
         old = self.settings.value('username', type=str)
         if not line:
@@ -98,13 +106,36 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             self.open_chat_list.pop(text)
 
     def tab_changed(self, index):
+        send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
         if index != 0:
+            self.notify(index)
             if index not in self.SIGNAL:
-                send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
                 send[0].clicked.connect(self.send_button_pressed)
+                send[0].setEnabled(True)
                 send_default = self.tabWidget.widget(index).findChildren(QCheckBox, "send_default")
                 send_default[0].stateChanged.connect(self.checkbox_state_changed)
                 self.SIGNAL.append(index)
+
+    def notify(self, index):
+        chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
+        send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
+        if index != 0:
+            name = self.tabWidget.tabText(index)
+            name = name.replace('&', '')
+            if name not in self.MEMBERS:
+                if name not in self.notify_offline:
+                    to_display = '<font color="grey"><b>' + name + ' appears to be offline</b></font>'
+                    chat_box[0].append(to_display)
+                    send[0].setEnabled(False)
+                    self.notify_offline[name] = 'notified'
+                else:
+                    pass
+            if name in self.notify_offline:
+                if name in self.MEMBERS:
+                    to_display = '<font color="green"><b>' + name + ' has appeared back online</b></font>'
+                    chat_box[0].append(to_display)
+                    send[0].setEnabled(True)
+                    self.notify_offline.pop(name)
 
     def tree_double_clicked(self, item, column):
         text = item.text(0)
@@ -182,7 +213,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
                     chat_box.append(to_display)
                     send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton,
                                                                                              "send")
-                    # send.setDisabled(True)
+                    send.setEnabled(False)
                     break
 
     def get_name_from_address(self, address):
