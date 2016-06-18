@@ -1,9 +1,10 @@
 from ui_mainwindow import Ui_MainWindow
 from PyQt5.QtWidgets import *
-from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from socket import *
 import sys
+import threading
+import time
 from src_beacon import Beacon
 from src_member_lookup import MemberLookup
 from src_receive_message import ReceiveMessage
@@ -103,18 +104,33 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             self.SIGNAL.remove(index)
             self.tabWidget.removeTab(index)
             text = text.replace('&', '')
+            if text in self.notify_offline:
+                self.notify_offline.pop(text)
             self.open_chat_list.pop(text)
 
     def tab_changed(self, index):
         send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
         if index != 0:
-            self.notify(index)
+            self.start_notify(index)
             if index not in self.SIGNAL:
                 send[0].clicked.connect(self.send_button_pressed)
                 send[0].setEnabled(True)
                 send_default = self.tabWidget.widget(index).findChildren(QCheckBox, "send_default")
                 send_default[0].stateChanged.connect(self.checkbox_state_changed)
                 self.SIGNAL.append(index)
+
+    def start_notify(self, index):
+        start_notify = threading.Thread(target=self.loop_notify, args=(index,))
+        start_notify.setDaemon(True)
+        start_notify.start()
+
+    def loop_notify(self, index):
+        if index >= 1:
+            while True:
+                self.notify(index)
+                time.sleep(2)
+        else:
+            pass
 
     def notify(self, index):
         chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
@@ -300,12 +316,10 @@ if __name__ == '__main__':
         if not username:
             sys.exit(app.exit(0))
         else:
-            # w.start_receive()
-
+            # w.start_notify()
             w.show()
             sys.exit(app.exec_())
     else:
-        # w.start_receive()
-
+        # w.start_notify()
         w.show()
         sys.exit(app.exec_())
