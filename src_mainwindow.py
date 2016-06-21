@@ -189,8 +189,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             chat_tab_layout.addWidget(send_default)
 
             chat_widget.setLayout(chat_tab_layout)
-            chat_widget.setTabOrder(chat_box, chat_msg)
             chat_widget.setTabOrder(chat_msg, msg_send)
+            chat_widget.setTabOrder(msg_send, chat_box)
 
             index = self.tabWidget.addTab(chat_widget, name)
             self.open_chat_list[name] = index
@@ -249,10 +249,14 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
     def checkbox_state_changed(self, state):
         send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton, "send")
-        if state == 1:
+        if state:
             send[0].setDefault(True)
+            # send[0].setAutoDefault(True)
+            print('Checked')
         else:
             send[0].setDefault(False)
+            # send[0].setAutoDefault(False)
+            print('Not Checked')
 
     def send_button_pressed(self):
         self.statusbar.showMessage('Send button pressed')
@@ -264,9 +268,12 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QLineEdit, "chat_msg")
         chat_msg = find_widget[0]
         if chat_msg.isModified():
-            print('calling send_message')
-            self.send_message(chat_msg.text(), address)
-            chat_msg.clear()
+            msg = chat_msg.text()
+            if msg != '':
+                if msg != ' ':
+                    print('calling send_message')
+                    self.send_message(chat_msg.text(), address)
+                    chat_msg.clear()
         else:
             self.statusbar.showMessage('Type a message to send.')
 
