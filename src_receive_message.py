@@ -3,7 +3,8 @@ from PyQt5.QtCore import QThread, pyqtSignal
 
 
 class ReceiveMessage (QThread):
-    receive = pyqtSignal(str, str, socket, name='receive')
+    receive_message_signal = pyqtSignal(str, bytes, name='receive_message_signal')
+    receive_file_signal = pyqtSignal(str, bytes, name='receive_file_signal')
 
     def __init__(self):
         self.r_msg = socket(AF_INET, SOCK_STREAM)
@@ -19,12 +20,18 @@ class ReceiveMessage (QThread):
         print('Receiving...')
         connection, address = self.r_msg.accept()
         if address:
-                # self.open_socket[name] = connection
+            # self.open_socket[name] = connection
             data = connection.recvfrom(4096)
             print(address[0])
             print(str(data[0]))
-                # self.display_message(data, name)
-            self.receive.emit(address[0], str(data[0]), connection)
+            rcv = str(data[0])
+            rcv = rcv[:-1]
+            rcv = rcv[2:]
+            if rcv.startswith('#FILE'):
+                self.receive_file_signal.emit(address[0], data[0])
+            # send a byte instead and convert it to str lin the function.
+            else:
+                self.receive_message_signal.emit(address[0], data[0])
             print('Received.')
             connection.close()
 

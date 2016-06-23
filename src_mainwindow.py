@@ -21,6 +21,7 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
     open_chat_list = {}
     notify_offline = {}
     open_socket = {}
+    pop_socket = True
     beacon = Beacon()
     member_lookup = MemberLookup()
     receive_message = ReceiveMessage()
@@ -36,7 +37,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         self.beacon.start()
         self.member_lookup.lookup.connect(self.setup_member_table)
         self.member_lookup.start()
-        self.receive_message.receive.connect(self.display_message)
+        self.receive_message.receive_message_signal.connect(self.display_message)
+        self.receive_message.receive_file_signal.connect(self.receive_file)
         self.receive_message.start()
 
         self.ONLINE.setText(0, 'Online')
@@ -110,14 +112,29 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
     def tab_changed(self, index):
         send = self.tabWidget.widget(index).findChildren(QPushButton, "send")
+        # send_file = self.tabWidget.widget(index).findChildren(QPushButton, 'options')
         if index != 0:
             self.start_notify(index)
             if index not in self.SIGNAL:
                 send[0].clicked.connect(self.send_button_pressed)
                 send[0].setEnabled(True)
+                # send_file[0].clicked.connect(self.menu_triggered)
                 send_default = self.tabWidget.widget(index).findChildren(QCheckBox, "send_default")
                 send_default[0].stateChanged.connect(self.checkbox_state_changed)
                 self.SIGNAL.append(index)
+
+    def send_file(self):
+        name = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        name = name.replace('&', '')
+        self.create_socket(name)
+        sock = self.open_socket[name]
+        fname = QFileDialog.getOpenFileName(self, 'Open file', '/home')
+        if fname[0]:
+            self.statusbar.showMessage(fname[0])
+            to_send = '#FILE '+fname[0]
+            sock.send(bytes(to_send, 'utf-8'))
+            sock.close()
+            self.open_socket.pop(name)
 
     def start_notify(self, index):
         start_notify = threading.Thread(target=self.loop_notify, args=(index,))
@@ -168,9 +185,24 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
             if get_tab_number:
                 return index
         else:
-            chat_box = QTextEdit()
+            option = QPushButton('Options')
+            option.setObjectName('options')
+            option.setFlat(True)
+
+            menu = QMenu()
+            menu.setObjectName('button_menu')
+            send_file = QAction('Send File', self, triggered=self.send_file)
+            send_file.setObjectName('send_file')
+            menu.addAction(send_file)
+            ping = QAction('Ping', self)
+            ping.setObjectName('ping')
+            menu.addAction(ping)
+
+            option.setMenu(menu)
+
+            chat_box = QTextBrowser()
             chat_box.setObjectName('chat_box')
-            chat_box.setReadOnly(True)
+            chat_box.setOpenLinks(False)
             chat_msg = QLineEdit()
             chat_msg.setObjectName('chat_msg')
             msg_send = QPushButton('Send')
@@ -180,10 +212,14 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
 
             chat_widget = QWidget()
 
+            hBox_layout_top = QHBoxLayout()
+            hBox_layout_top.addWidget(option)
+            hBox_layout_top.addStretch(5)
             hBox_layout = QHBoxLayout()
             chat_tab_layout = QVBoxLayout()
             hBox_layout.addWidget(chat_msg)
             hBox_layout.addWidget(msg_send)
+            chat_tab_layout.addLayout(hBox_layout_top)
             chat_tab_layout.addWidget(chat_box)
             chat_tab_layout.addLayout(hBox_layout)
             chat_tab_layout.addWidget(send_default)
@@ -236,16 +272,23 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         print(self.MEMBERS)
         return list(self.MEMBERS.keys())[list(self.MEMBERS.values()).index(address)]
 
-    def display_message(self, address, data, connection):
+    def display_message(self, address, data):
         # maybe not be used later
         name = self.get_name_from_address(address)
-        self.open_socket[name] = connection
+        data = str(data)
+        # self.open_socket[name] = connection
         index = self.create_tab(name, False, True)
         chat_box = self.tabWidget.widget(index).findChildren(QTextEdit, "chat_box")
         data = data[:-1]
         data = data[2:]
         to_display = '<font color="red"><b>' + name + '</b>: ' + data + '</font>'
         chat_box[0].append(to_display)
+
+    def receive_file(self, address, data):
+        data = str(data)
+        data = data[:-1]
+        data = data[7:]
+        print(data)
 
     def checkbox_state_changed(self, state):
         send = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QPushButton, "send")
@@ -264,7 +307,8 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         print('sending message')
         address = self.tabWidget.tabText(self.tabWidget.currentIndex())
         address = address.replace('&', '')
-        self.create_socket(address)
+        if address not in self.open_socket:
+            self.create_socket(address)
         find_widget = self.tabWidget.widget(self.tabWidget.currentIndex()).findChildren(QLineEdit, "chat_msg")
         chat_msg = find_widget[0]
         if chat_msg.isModified():
@@ -288,8 +332,9 @@ class ChatONLAN(QMainWindow, Ui_MainWindow):
         chat_box.append(to_display)
         print('socket.send')
         sock.send(bytes(msg, 'utf-8'))
-        sock.close()
-        self.open_socket.pop(to)
+        if self.pop_socket:
+            sock.close()
+            self.open_socket.pop(to)
 
     def setup_member_table(self, members, add, remove, ip2host):
         self.IP2HOST = ip2host
